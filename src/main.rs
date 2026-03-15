@@ -1,5 +1,5 @@
+use aws_sdk_s3::{Client, config::Region, presigning::PresigningConfig};
 use clap::Parser;
-use s3_presign::{Bucket, Credentials, put};
 
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None, ignore_errors(true))]
@@ -14,33 +14,26 @@ struct Cli
   /// The virtual path within the bucket for the destination object
   #[clap(short = 'k', long = "key")]
   key: String,
+  /// The AWS credentials profile to use
+  #[clap(short = 'p', long = "profile")]
+  profile: Option<String>,
   /// The expiration time in seconds for the signed PUT url
   #[arg(short, long, default_value_t = 86400)]
-  expiration: i64
+  expiration: u64
 }
 
-fn main()
+#[tokio::main(flavor = "current_thread")]
+async fn main()
 {
   let args = Cli::parse();
 
-  let key = std::env::var("AWS_ACCESS_KEY_ID");
-  if key.is_err()
-  {
-    println!("AWS_ACCESS_KEY_ID environment variable is not set");
-    std::process::exit(1);
-  }
-  let key = key.unwrap();
+  let region = Region::new(args.region.clone());
+  let config = aws_config::from_env().region(region).load().await;
+  let client = Client::new(&config);
 
-  let secret = std::env::var("AWS_SECRET_ACCESS_KEY");
-  if secret.is_err()
-  {
-    println!("AWS_SECRET_ACCESS_KEY environment variable is not set");
-    std::process::exit(1);
-  }
-  let secret = secret.unwrap();
+  let expiry: std::time::Duration = std::time::Duration::from_secs(args.expiration);
+  let expiry = PresigningConfig::expires_in(expiry).unwrap();
+  let req = client.put_object().bucket(args.bucket.as_str()).key(args.key.as_str()).presigned(expiry).await.unwrap();
 
-  let credentials = Credentials::new(key.as_str(), secret.as_str(), None);
-  let bucket = Bucket::new(args.region.as_str(), args.bucket.as_str());
-  let url = put(&credentials, &bucket, args.key.as_str(), args.expiration).unwrap();
-  println!("{}", url);
+  println!("{}", req.uri());
 }
