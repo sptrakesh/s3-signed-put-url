@@ -14,7 +14,7 @@ The rest of the information is passed in via command line arguments.
 * `key` - The name of the S3 object
 * `expiration` - The expiration time for the signed URL in seconds.
 * `profile` - The *profile* (section) in the `$HOME/.aws/credentials` TOML file to use as credentials.  Only needed
-  if using the credentials file and you wish to use the non-default profile.
+  if using the credentials file and not environment variables.  The `default` profile will *not* be automatically used.
 
 ```shell
 AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... <path to>/s3-signed-put --region=us-east-2 --bucket=my-bucket --key=some/path/file.txt --expiration=3600
