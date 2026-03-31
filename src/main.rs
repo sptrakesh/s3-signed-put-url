@@ -47,7 +47,7 @@ fn section(path: &str, profile: &str) -> Result<Section, String>
     {
       let name = &line[1..line.len()-1];
       if name == profile { found = true; }
-      else if found { return Ok(section); }
+      else if found { break; }
       section.name = name.to_string();
     }
     else if line.starts_with("aws_access_key_id")
@@ -66,6 +66,8 @@ fn section(path: &str, profile: &str) -> Result<Section, String>
       section.token = Some(parts[1].trim().to_string());
     }
   }
+
+  if section.name == profile { return Ok(section); }
 
   Err("Profile not found".to_string())
 }
